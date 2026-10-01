@@ -67,6 +67,8 @@ enum filter_type {
     FILTER_DESTINATION,
     //! SIP Call-ID header
     FILTER_CALLID,
+    //! Configured custom SIP header
+    FILTER_CUSTOM,
     //! SIP Method in packet payload
     FILTER_METHOD,
     //! SIP Payload in any call packet

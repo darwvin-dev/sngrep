@@ -31,6 +31,51 @@
 #include "sip_msg.h"
 #include "media.h"
 #include "sip.h"
+#include "setting.h"
+
+static const char *
+msg_get_custom_header(sip_msg_t *msg, char *value)
+{
+    const char *name = setting_get_value(SETTING_SIP_HEADER_CUSTOM);
+    const char *payload = msg_get_payload(msg);
+    const char *line, *end, *start;
+    size_t name_len, line_len, value_len;
+
+    if (!name || !*name || !payload)
+        return NULL;
+
+    name_len = strlen(name);
+    line = payload;
+
+    while (*line) {
+        end = strstr(line, "\r\n");
+        line_len = end ? (size_t) (end - line) : strlen(line);
+
+        // Stop at the end of SIP headers; never match header-like text in SDP/body.
+        if (line_len == 0)
+            break;
+
+        if (line_len > name_len && line[name_len] == ':'
+                && !strncasecmp(line, name, name_len)) {
+            start = line + name_len + 1;
+            while (start < line + line_len && (*start == ' ' || *start == '\t'))
+                start++;
+
+            value_len = (size_t) ((line + line_len) - start);
+            if (value_len >= SIP_ATTR_MAXLEN)
+                value_len = SIP_ATTR_MAXLEN - 1;
+            memcpy(value, start, value_len);
+            value[value_len] = '\0';
+            return value;
+        }
+
+        if (!end)
+            break;
+        line = end + 2;
+    }
+
+    return NULL;
+}
 
 sip_msg_t *
 msg_create()
@@ -169,6 +214,9 @@ msg_get_attribute(sip_msg_t *msg, int id, char *value)
             if (msg->sip_contact) {
                 sprintf(value, "%.*s", SIP_ATTR_MAXLEN - 1, msg->sip_contact);
             }
+            break;
+        case SIP_ATTR_CUSTOM:
+            msg_get_custom_header(msg, value);
             break;
         default:
             fprintf(stderr, "Unhandled attribute %s (%d)\n", sip_attr_get_name(id), id); abort();

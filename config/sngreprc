@@ -84,6 +84,7 @@
 ##    - state
 ##    - convdur
 ##    - totaldur
+##    - custom (header name configured with sip.customheader)
 ##
 ## Examples:
 # set cl.column0 sipfrom
@@ -114,3 +115,7 @@
 ##-----------------------------------------------------------------------------
 ## Uncomment to define custom b_leg correlation header
 # set sip.xcid X-Call-ID|X-CID
+
+## Configure one arbitrary SIP header for the "custom" call-list column
+## and the matching F7 filter field.
+# set sip.customheader X-Account-ID

@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "option.h"
+#include "setting.h"
 #include "sip_attr.h"
 #include "util.h"
 #include "curses/ui_manager.h"
@@ -55,7 +56,8 @@ static sip_attr_hdr_t attrs[SIP_ATTR_COUNT] = {
     { SIP_ATTR_TOTALDUR,    "totaldur",    "TotalDur", "Total Duration", 8 },
     { SIP_ATTR_REASON_TXT,  "reason",      "Reason Text",   "Reason Text", 25 },
     { SIP_ATTR_WARNING,     "warning",     "Warning", "Warning code", 4 },
-    { SIP_ATTR_CONTACT,     "contact",     NULL,   "Contact",        30 }
+    { SIP_ATTR_CONTACT,     "contact",     NULL,   "Contact",        30 },
+    { SIP_ATTR_CUSTOM,      "custom",      NULL,   "Custom Header",  25 }
 };
 
 sip_attr_hdr_t *
@@ -78,6 +80,12 @@ const char *
 sip_attr_get_title(enum sip_attr_id id)
 {
     sip_attr_hdr_t *header;
+    const char *custom;
+
+    if (id == SIP_ATTR_CUSTOM
+            && (custom = setting_get_value(SETTING_SIP_HEADER_CUSTOM)))
+        return custom;
+
     if ((header = sip_attr_get_header(id))) {
         if (header->title)
             return header->title;

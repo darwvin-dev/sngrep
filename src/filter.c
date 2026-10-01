@@ -169,6 +169,8 @@ filter_check_call(void *item)
             case FILTER_CALLID:
                 call_get_attribute(call, SIP_ATTR_CALLID, data);
                 break;
+            case FILTER_CUSTOM:
+                break;
             case FILTER_METHOD:
                 call_get_attribute(call, SIP_ATTR_METHOD, data);
                 break;
@@ -194,6 +196,20 @@ filter_check_call(void *item)
                 sng_strlcpy(data, msg_get_payload(msg), sizeof(data));
                 // Check if this payload matches the filter
                 if (filter_check_expr(filters[i], data) == 0) {
+                    call->filtered = 0;
+                    break;
+                }
+            }
+            if (call->filtered == 1)
+                break;
+        } else if (i == FILTER_CUSTOM) {
+            // Match the configured header in any message of the dialog.
+            call->filtered = 1;
+            it = vector_iterator(call->msgs);
+            while ((msg = vector_iterator_next(&it))) {
+                memset(data, 0, sizeof(data));
+                if (msg_get_attribute(msg, SIP_ATTR_CUSTOM, data)
+                        && filter_check_expr(filters[i], data) == 0) {
                     call->filtered = 0;
                     break;
                 }
