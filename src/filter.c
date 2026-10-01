@@ -173,6 +173,7 @@ filter_check_call(void *item)
                 call_get_attribute(call, SIP_ATTR_METHOD, data);
                 break;
             case FILTER_PAYLOAD:
+            case FILTER_RESPONSE:
                 break;
             case FILTER_CALL_LIST:
                 // FIXME Maybe call should know how to calculate this line
@@ -193,6 +194,22 @@ filter_check_call(void *item)
                 // Copy message payload
                 sng_strlcpy(data, msg_get_payload(msg), sizeof(data));
                 // Check if this payload matches the filter
+                if (filter_check_expr(filters[i], data) == 0) {
+                    call->filtered = 0;
+                    break;
+                }
+            }
+            if (call->filtered == 1)
+                break;
+        } else if (i == FILTER_RESPONSE) {
+            // Match if any SIP response in the dialog matches code/reason.
+            call->filtered = 1;
+            it = vector_iterator(call->msgs);
+            while ((msg = vector_iterator_next(&it))) {
+                if (msg->reqresp < 100)
+                    continue;
+                memset(data, 0, sizeof(data));
+                sng_strlcpy(data, sip_get_msg_reqresp_str(msg), sizeof(data));
                 if (filter_check_expr(filters[i], data) == 0) {
                     call->filtered = 0;
                     break;

@@ -71,6 +71,8 @@ enum filter_type {
     FILTER_METHOD,
     //! SIP Payload in any call packet
     FILTER_PAYLOAD,
+    //! SIP response code/reason in any call packet
+    FILTER_RESPONSE,
     //! Displayed line in call list
     FILTER_CALL_LIST,
     //! Number of available filter types
