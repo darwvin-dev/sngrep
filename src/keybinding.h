@@ -95,6 +95,7 @@ enum key_actions {
     ACTION_SDP_INFO,
     ACTION_DISP_FILTER,
     ACTION_SAVE,
+    ACTION_LOAD,
     ACTION_SELECT,
     ACTION_CONFIRM,
     ACTION_TOGGLE_MEDIA,
@@ -117,7 +118,7 @@ enum key_actions {
 typedef struct key_binding key_binding_t;
 
 /**
- * @brief Struct to hold a keybinding data
+ * @brief Struct to hold keybinding data
  */
 struct key_binding {
     //! Keybinding action id
