@@ -1,0 +1,84 @@
+name: Apply PCAP loader implementation
+
+on:
+  push:
+    branches:
+      - feature/load-pcap-from-ui
+    paths:
+      - .github/workflows/apply-pcap-loader.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'chore: bootstrap pcap loader implementation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/load-pcap-from-ui
+      - name: Apply implementation
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"expected text not found in {path}: {old[:80]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace('src/keybinding.h',
+                  '    ACTION_SAVE,\n    ACTION_SELECT,',
+                  '    ACTION_SAVE,\n    ACTION_LOAD,\n    ACTION_SELECT,')
+
+          replace('src/keybinding.c',
+                  '   { ACTION_SAVE,           "save",         { KEY_F(2), \'s\', \'S\'}, 3 },\n   { ACTION_SELECT,',
+                  '   { ACTION_SAVE,           "save",         { KEY_F(2), \'s\', \'S\'}, 3 },\n   { ACTION_LOAD,           "load",         { \'L\' }, 1 },\n   { ACTION_SELECT,')
+
+          replace('src/capture.h',
+                  '    //! Input file in Offline capture\n    const char *infile;\n',
+                  '    //! Input file in Offline capture\n    const char *infile;\n    //! Owned input filename for captures loaded from the UI\n    char *owned_infile;\n')
+
+          replace('src/capture.h',
+                  'int\ncapture_offline(const char *infile);\n',
+                  'int\ncapture_offline(const char *infile);\n\n/**\n * @brief Add an offline capture while the UI is already running\n *\n * The filename is copied so callers may use temporary buffers. Only the\n * newly-added source gets a capture thread.\n *\n * @param infile File to read packets from\n * @return 0 on success, 1 otherwise\n */\nint\ncapture_offline_start(const char *infile);\n')
+
+          replace('src/capture.c',
+                  '    // Close pcap handler\n    capture_close();\n\n    // Deallocate vectors\n    vector_set_destroyer(capture_cfg.sources, vector_generic_destroyer);',
+                  '    // Close pcap handler\n    capture_close();\n\n    // Release filenames owned by captures loaded at runtime\n    capture_info_t *capinfo;\n    vector_iter_t it = vector_iterator(capture_cfg.sources);\n    while ((capinfo = vector_iterator_next(&it))) {\n        free(capinfo->owned_infile);\n        capinfo->owned_infile = NULL;\n    }\n\n    // Deallocate vectors\n    vector_set_destroyer(capture_cfg.sources, vector_generic_destroyer);')
+
+          marker = '    return 0;\n}\n\nvoid\nparse_packet(u_char *info, const struct pcap_pkthdr *header, const u_char *packet)\n'
+          runtime_loader = '''    return 0;\n}\n\nint\ncapture_offline_start(const char *infile)\n{\n    capture_info_t *capinfo;\n    pthread_attr_t attr;\n    int source_index;\n    char *owned_infile;\n\n    if (!infile || !*infile)\n        return 1;\n\n    if (!(owned_infile = strdup(infile)))\n        return 1;\n\n    source_index = vector_count(capture_cfg.sources);\n    if (capture_offline(owned_infile) != 0) {\n        free(owned_infile);\n        return 1;\n    }\n\n    capinfo = vector_item(capture_cfg.sources, source_index);\n    if (!capinfo) {\n        free(owned_infile);\n        return 1;\n    }\n    capinfo->owned_infile = owned_infile;\n\n    // Keep the active BPF policy consistent for captures added at runtime.\n    if (capture_cfg.filter && *capture_cfg.filter &&\n        capture_set_bpf_filter(capture_cfg.filter) != 0) {\n        return 1;\n    }\n\n    // Launch only the source that was just added. Re-launching all sources\n    // would create duplicate readers for an already-running live capture.\n    pthread_attr_init(&attr);\n    capinfo->running = true;\n    if (pthread_create(&capinfo->capture_t, &attr, capinfo->capture_fn, capinfo)) {\n        capinfo->running = false;\n        pthread_attr_destroy(&attr);\n        return 1;\n    }\n    pthread_attr_destroy(&attr);\n    return 0;\n}\n\nvoid\nparse_packet(u_char *info, const struct pcap_pkthdr *header, const u_char *packet)\n'''
+          replace('src/capture.c', marker, runtime_loader)
+
+          replace('src/curses/ui_manager.h',
+                  'int\ndialog_run(const char *fmt, ...);\n',
+                  'int\ndialog_run(const char *fmt, ...);\n\n/**\n * @brief Prompt for one line of text in a modal dialog\n * @return 0 on success, -1 on input error\n */\nint\ndialog_input(const char *title, const char *label, char *buffer, int buflen);\n')
+
+          dialog_marker = '''    delwin(win);\n    return 1;\n\n}\n\nWINDOW *\ndialog_progress_run(const char *fmt, ...)\n'''
+          dialog_impl = '''    delwin(win);\n    return 1;\n\n}\n\nint\ndialog_input(const char *title, const char *label, char *buffer, int buflen)\n{\n    WINDOW *win;\n    int height = 7;\n    int width;\n    int rc;\n\n    if (!title || !label || !buffer || buflen < 2)\n        return -1;\n\n    buffer[0] = '\\0';\n    width = strlen(label) + 6;\n    if ((int) strlen(title) + 4 > width)\n        width = strlen(title) + 4;\n    if (width < 56)\n        width = 56;\n    if (width > DIALOG_MAX_WIDTH)\n        width = DIALOG_MAX_WIDTH;\n\n    win = newwin(height, width, (LINES - height) / 2, (COLS - width) / 2);\n    if (!win)\n        return -1;\n\n    box(win, 0, 0);\n    mvwprintw(win, 1, (width - strlen(title)) / 2, "%s", title);\n    mvwprintw(win, 3, 2, "%s", label);\n    wmove(win, 4, 2);\n\n    curs_set(1);\n    echo();\n    nocbreak();\n    rc = wgetnstr(win, buffer, buflen - 1);\n    cbreak();\n    noecho();\n    curs_set(0);\n    delwin(win);\n    touchwin(stdscr);\n\n    return (rc == ERR) ? -1 : 0;\n}\n\nWINDOW *\ndialog_progress_run(const char *fmt, ...)\n'''
+          replace('src/curses/ui_manager.c', dialog_marker, dialog_impl)
+
+          replace('src/curses/ui_call_list.c',
+                  '        key_action_key_str(ACTION_SAVE), "Save",\n        key_action_key_str(ACTION_DISP_FILTER), "Search",',
+                  '        key_action_key_str(ACTION_SAVE), "Save",\n        key_action_key_str(ACTION_LOAD), "Load",\n        key_action_key_str(ACTION_DISP_FILTER), "Search",')
+          replace('src/curses/ui_call_list.c',
+                  '    ui_draw_bindings(ui, keybindings, 23);',
+                  '    ui_draw_bindings(ui, keybindings, 25);')
+          replace('src/curses/ui_call_list.c',
+                  '    sip_sort_t sort;\n',
+                  '    sip_sort_t sort;\n    char loadfile[MAX_SETTING_LEN];\n')
+          replace('src/curses/ui_call_list.c',
+                  '''            case ACTION_SAVE:\n                if (capture_sources_count() > 1) {\n                    dialog_run("Saving is not possible when multiple input sources are specified.");\n                    break;\n                }\n                next_ui = ui_create_panel(PANEL_SAVE);\n                save_set_group(next_ui, info->group);\n                break;\n''',
+                  '''            case ACTION_SAVE:\n                if (capture_sources_count() > 1) {\n                    dialog_run("Saving is not possible when multiple input sources are specified.");\n                    break;\n                }\n                next_ui = ui_create_panel(PANEL_SAVE);\n                save_set_group(next_ui, info->group);\n                break;\n            case ACTION_LOAD:\n                if (dialog_input("Load capture", "PCAP file:", loadfile, sizeof(loadfile)) != 0)\n                    break;\n                strtrim(loadfile);\n                if (!strlen(loadfile))\n                    break;\n                if (capture_offline_start(loadfile) != 0) {\n                    dialog_run("Unable to load capture file %s", loadfile);\n                    break;\n                }\n                dialog_run("Loading capture file %s", loadfile);\n                break;\n''')
+          PY
+
+          rm .github/workflows/apply-pcap-loader.yml
+          git config user.name "Darwvin"
+          git config user.email "darwvin@hotmail.com"
+          git add -A
+          git commit -m "feat: load saved PCAP from call list"
+          git push origin HEAD:feature/load-pcap-from-ui
