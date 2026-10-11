@@ -167,6 +167,7 @@ target_sources( sngrep
 		src/setting.c
 		src/rtp.c
 		src/media_inspector.c
+		src/rtpengine.c
 		src/util.c
 		src/hash.c
 		src/vector.c
@@ -289,7 +290,7 @@ message( STATUS "" )
 enable_testing()            # "ctest" will run all tests
 add_custom_target( tests )  # "make tests" will build all tests
 
-foreach( i 001 002 003 004 005 006 007 008 009 010 011 013 )
+foreach( i 001 002 003 004 005 006 007 008 009 010 011 013 014 )
 	add_executable( test_${i} EXCLUDE_FROM_ALL tests/test_${i}.c )
 	if( i STREQUAL "007" )
 		target_sources( test_${i} PUBLIC src/vector.c src/util.c )
@@ -297,6 +298,9 @@ foreach( i 001 002 003 004 005 006 007 008 009 010 011 013 )
 		target_sources( test_${i} PUBLIC src/hash.c )
 	elseif( i STREQUAL "013" )
 		target_sources( test_${i} PUBLIC src/capture_esp.c )
+	elseif( i STREQUAL "014" )
+		target_sources( test_${i} PUBLIC src/rtpengine.c )
+		target_link_libraries( test_${i} PUBLIC pthread )
 	endif()
 	target_include_directories( test_${i} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} )
 
