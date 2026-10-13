@@ -8,7 +8,7 @@
 - Open issues may already have a fix in HEAD; only reproduced problems can be called confirmed outstanding bugs. Historical reports are not proof of current regressions.
 - Priority ranks are engineering triage judgments, **not maintainer priorities**. P1: impact/urgency or reviewer attention. P3: aged platform/docs/low-current-applicability. All descriptions should be verified against current code before merging.
 - Existing upstream PRs: #564 (issue #275), #582 (#503), #583 (#501), #584 (#435). Media Inspector PRs #579, #580, #581 cover parts of issues #285/#412, but not necessarily the entire request.
-- New contributor fork draft PRs: [CSV export #7](https://github.com/darwvin-dev/sngrep/pull/7) for issue #265; [Git SHA in version #8](https://github.com/darwvin-dev/sngrep/pull/8) for #333.
+- New contributor fork draft PRs: [CSV export #7](https://github.com/darwvin-dev/sngrep/pull/7) for issue #265; [Git SHA in version #8](https://github.com/darwvin-dev/sngrep/pull/8) for #333; [HEP use-after-free #10](https://github.com/darwvin-dev/sngrep/pull/10), an independent safety fix discovered near #537 **but not a resolution of #537**.
 - Do **not** mass-comment or close issues without tested resolutions.
 
 ## Item-by-item recommended disposition
