@@ -39,8 +39,8 @@
  * every sngrep execution.
  */
 
-#ifndef __SNGREP_SETTING_H
-#define __SNGREP_SETTING_H
+#ifndef SNGREP_SETTING_H
+#define SNGREP_SETTING_H
 
 //! Max setting value
 #define MAX_SETTING_LEN   1024
@@ -55,6 +55,7 @@ typedef struct setting_option setting_t;
 #define SETTING_ENUM_ONOFF       (const char *[]){ "on", "off", NULL }
 #define SETTING_ENUM_YESNO       (const char *[]){ "yes", "no", NULL }
 #define SETTING_ENUM_BACKGROUND  (const char *[]){ "dark" , "default", NULL }
+#define SETTING_ENUM_THEME       (const char *[]){ "classic", "modern", "professional", "simple", NULL }
 #define SETTING_ENUM_COLORMODE   (const char *[]){ "request", "cseq", "callid", NULL }
 #define SETTING_ENUM_HIGHLIGHT   (const char *[]){ "bold", "reverse", "reversebold", NULL }
 #define SETTING_ENUM_SDP_INFO    (const char *[]){ "off", "first", "full", "compressed", NULL}
@@ -73,12 +74,14 @@ typedef struct setting_option setting_t;
 //! Available setting Options
 enum setting_id {
     SETTING_BACKGROUND = 0,
+    SETTING_THEME,
     SETTING_COLORMODE,
     SETTING_SYNTAX,
     SETTING_SYNTAX_TAG,
     SETTING_SYNTAX_BRANCH,
     SETTING_ALTKEY_HINT,
     SETTING_EXITPROMPT,
+    SETTING_MOUSE,
     SETTING_CAPTURE_LIMIT,
     SETTING_CAPTURE_DEVICE,
     SETTING_CAPTURE_OUTFILE,
@@ -121,6 +124,7 @@ enum setting_id {
     SETTING_CR_NON_ASCII,
     SETTING_FILTER_PAYLOAD,
     SETTING_FILTER_METHODS,
+    SETTING_FILTER_CALLSTATES,
     SETTING_TELEPHONE_EVENT,
 #ifdef USE_EEP
     SETTING_EEP_SEND,
@@ -229,4 +233,4 @@ setting_enum_next(int id, const char *value);
 void
 settings_dump();
 
-#endif /* __SNGREP_SETTING_H */
+#endif /* SNGREP_SETTING_H */

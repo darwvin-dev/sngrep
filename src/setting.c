@@ -37,12 +37,14 @@
 //! Available configurable settings
 setting_t settings[SETTING_COUNT] = {
     { SETTING_BACKGROUND,         "background",         SETTING_FMT_ENUM,    "dark",      SETTING_ENUM_BACKGROUND },
+    { SETTING_THEME,              "theme",              SETTING_FMT_ENUM,    "classic",   SETTING_ENUM_THEME },
     { SETTING_COLORMODE,          "colormode",          SETTING_FMT_ENUM,    "request",   SETTING_ENUM_COLORMODE },
     { SETTING_SYNTAX,             "syntax",             SETTING_FMT_ENUM,    SETTING_ON,  SETTING_ENUM_ONOFF },
     { SETTING_SYNTAX_TAG,         "syntax.tag",         SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
     { SETTING_SYNTAX_BRANCH,      "syntax.branch",      SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
     { SETTING_ALTKEY_HINT,        "hintkeyalt",         SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
     { SETTING_EXITPROMPT,         "exitprompt",         SETTING_FMT_ENUM,    SETTING_ON,  SETTING_ENUM_ONOFF },
+    { SETTING_MOUSE,              "mouse",              SETTING_FMT_ENUM,    SETTING_ON,  SETTING_ENUM_ONOFF },
     { SETTING_CAPTURE_LIMIT,      "capture.limit",      SETTING_FMT_NUMBER,  "20000",     NULL },
     { SETTING_CAPTURE_DEVICE,     "capture.device",     SETTING_FMT_STRING,  "any",       NULL },
     { SETTING_CAPTURE_OUTFILE,    "capture.outfile",    SETTING_FMT_STRING,  "",          NULL },
@@ -85,6 +87,7 @@ setting_t settings[SETTING_COUNT] = {
     { SETTING_CR_NON_ASCII,       "cr.nonascii",        SETTING_FMT_STRING,  ".",        NULL },
     { SETTING_FILTER_PAYLOAD,     "filter.payload",     SETTING_FMT_STRING,  "",          NULL },
     { SETTING_FILTER_METHODS,     "filter.methods",     SETTING_FMT_STRING,  "",          NULL },
+    { SETTING_FILTER_CALLSTATES,  "filter.callstates",  SETTING_FMT_STRING,  "",          NULL },
     { SETTING_TELEPHONE_EVENT,    "telephone_event",    SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
 #ifdef USE_EEP
     { SETTING_EEP_SEND,           "eep.send",           SETTING_FMT_ENUM,    SETTING_OFF, SETTING_ENUM_ONOFF },
