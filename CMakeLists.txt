@@ -33,6 +33,24 @@ project( ${AC_PACKAGE_NAME}
 
 add_executable( sngrep src/main.c )
 
+# Match Autotools: embed the current checkout revision only when Git data is
+# available, without changing builds from exported source archives.
+find_package( Git QUIET )
+if( GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git" )
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" rev-parse --verify --short=12 HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE SNGREP_GIT_REVISION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE SNGREP_GIT_RESULT
+        ERROR_QUIET
+    )
+    if( SNGREP_GIT_RESULT EQUAL 0 AND SNGREP_GIT_REVISION )
+        target_compile_definitions( sngrep PRIVATE
+            "SNGREP_GIT_COMMIT=\"${SNGREP_GIT_REVISION}\"" )
+    endif()
+endif()
+
 set_target_properties( sngrep PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES C_EXTENSIONS YES )
 target_compile_options( sngrep PRIVATE -Wall -pedantic ) # -Wextra -Wconversion -Werror
 
@@ -166,6 +184,7 @@ target_sources( sngrep
 		src/media.c
 		src/setting.c
 		src/rtp.c
+		src/media_inspector.c
 		src/util.c
 		src/hash.c
 		src/vector.c
@@ -183,6 +202,8 @@ target_sources( sngrep
 		src/curses/ui_msg_diff.c
 		src/curses/ui_column_select.c
 		src/curses/ui_settings.c
+		src/curses/ui_mouse.c
+		src/curses/ui_media_dashboard.c
 	)
 
 target_include_directories( sngrep PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src )
@@ -213,6 +234,7 @@ include( GNUInstallDirs )
 install( TARGETS sngrep RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 install( FILES config/sngreprc DESTINATION ${CMAKE_INSTALL_SYSCONFDIR} )
 install( FILES doc/sngrep.8 DESTINATION ${CMAKE_INSTALL_MANDIR}/man8 )
+install( FILES doc/sngreprc.5 DESTINATION ${CMAKE_INSTALL_MANDIR}/man5 )
 install( FILES README TODO COPYING ChangeLog DESTINATION "${CMAKE_INSTALL_DOCDIR}" )
 
 ######################################################################
@@ -287,7 +309,7 @@ message( STATUS "" )
 enable_testing()            # "ctest" will run all tests
 add_custom_target( tests )  # "make tests" will build all tests
 
-foreach( i 001 002 003 004 005 006 007 008 009 010 011 013 )
+foreach( i 001 002 003 004 005 006 007 008 009 010 011 013 014 )
 	add_executable( test_${i} EXCLUDE_FROM_ALL tests/test_${i}.c )
 	if( i STREQUAL "007" )
 		target_sources( test_${i} PUBLIC src/vector.c src/util.c )
@@ -295,6 +317,15 @@ foreach( i 001 002 003 004 005 006 007 008 009 010 011 013 )
 		target_sources( test_${i} PUBLIC src/hash.c )
 	elseif( i STREQUAL "013" )
 		target_sources( test_${i} PUBLIC src/capture_esp.c )
+	elseif( i STREQUAL "014" )
+		target_sources( test_${i} PUBLIC src/filter.c src/sip_call.c src/vector.c src/util.c )
+		target_include_directories( test_${i} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src )
+		if( WITH_PCRE )
+			target_link_libraries( test_${i} PkgConfig::LIBPCRE )
+		elseif( WITH_PCRE2 )
+			target_compile_definitions( test_${i} PRIVATE PCRE2_CODE_UNIT_WIDTH=8 )
+			target_link_libraries( test_${i} PkgConfig::LIBPCRE2 )
+		endif()
 	endif()
 	target_include_directories( test_${i} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} )
 

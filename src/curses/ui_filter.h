@@ -29,8 +29,8 @@
  * dialog, that can be used to filter the lines in call list window.
  */
 
-#ifndef __UI_FILTER_H
-#define __UI_FILTER_H
+#ifndef SNGREP_UI_FILTER_H
+#define SNGREP_UI_FILTER_H
 
 #include "config.h"
 #include <form.h>
@@ -49,7 +49,9 @@ enum filter_field_list {
     FLD_FILTER_SRC,
     FLD_FILTER_DST,
     FLD_FILTER_CALLID,
+    FLD_FILTER_XCALLID,
     FLD_FILTER_PAYLOAD,
+    FLD_FILTER_TRANSPORT,
     FLD_FILTER_REGISTER,
     FLD_FILTER_INVITE,
     FLD_FILTER_SUBSCRIBE,
@@ -61,6 +63,13 @@ enum filter_field_list {
     FLD_FILTER_MESSAGE,
     FLD_FILTER_REFER,
     FLD_FILTER_UPDATE,
+    FLD_FILTER_CALLSETUP,
+    FLD_FILTER_INCALL,
+    FLD_FILTER_CANCELLED,
+    FLD_FILTER_REJECTED,
+    FLD_FILTER_DIVERTED,
+    FLD_FILTER_BUSY,
+    FLD_FILTER_COMPLETED,
     FLD_FILTER_FILTER,
     FLD_FILTER_CANCEL,
     //! Never remove this field id @see filter_info
@@ -80,10 +89,6 @@ struct filter_info {
     FORM *form;
     //! An array of fields
     FIELD *fields[FLD_FILTER_COUNT + 1];
-#ifdef NCURSES_MOUSE_VERSION
-    //! Mouse events mask before the panel was created
-    mmask_t old_mousemask;
-#endif
 };
 
 /**
@@ -135,6 +140,21 @@ int
 filter_handle_key(ui_t *ui, int key);
 
 /**
+ * @brief Handle Filter panel mouse clicks
+ *
+ * This function is called by UI manager every time a mouse click
+ * is received on this panel. Wheel events and footer key hints are
+ * translated into keys and handled by filter_handle_key instead.
+ * This function return one of the values defined in @key_handler_ret
+ *
+ * @param ui UI structure pointer
+ * @param key KEY_MOUSE
+ * @return enum @key_handler_ret
+ */
+int
+filter_handle_mouse(ui_t *ui, int key);
+
+/**
  * @brief Select the given field
  *
  * Toggle checkbox fields and activate button fields.
@@ -175,6 +195,14 @@ filter_save_options(ui_t *ui);
  */
 const char*
 filter_field_method(int field_id);
+
+/**
+ * @brief Return call state for a filter field
+ *
+ * @return call state @see call_state
+ */
+int
+filter_field_callstate(int field_id);
 
 /**
  * @brief Set Method filtering from filter.methods setting format

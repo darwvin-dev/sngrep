@@ -32,6 +32,7 @@
 #include "sip_call.h"
 #include "sip.h"
 #include "setting.h"
+#include "filter.h"
 
 sip_call_t *
 call_create(char *callid, char *xcallid)
@@ -106,6 +107,10 @@ call_add_message(sip_call_t *call, sip_msg_t *msg)
     msg->call = call;
     // Put this msg at the end of the msg list
     msg->index = vector_append(call->msgs, msg);
+    // Only mutable filters need their cached result invalidated when a new
+    // message arrives. The other dedicated filters read the first message.
+    if (filter_get(FILTER_PAYLOAD) || filter_get(FILTER_CALL_LIST))
+        call->filtered = -1;
     // Flag this call as changed
     call->changed = true;
 }
@@ -196,10 +201,12 @@ call_msg_with_media(sip_call_t *call, address_t dst)
 void
 call_update_state(sip_call_t *call, sip_msg_t *msg)
 {
-    int reqresp;
+    int reqresp, oldstate;
 
     if (!call_is_invite(call))
         return;
+
+    oldstate = call->state;
 
     // Get current message Method / Response Code
     reqresp = msg->reqresp;
@@ -242,6 +249,49 @@ call_update_state(sip_call_t *call, sip_msg_t *msg)
             call->state = SIP_CALLSTATE_CALLSETUP;
         }
     }
+
+    if (call->state != oldstate)
+        filter_call_state_changed(call);
+}
+
+static void
+call_get_codec(sip_call_t *call, char *value)
+{
+    sip_msg_t *msg;
+    sdp_media_t *media;
+    const char *format;
+    vector_iter_t itmsg;
+    vector_iter_t itmedia;
+    int code;
+
+    // Only established calls have a negotiated codec
+    if (call->state != SIP_CALLSTATE_INCALL && call->state != SIP_CALLSTATE_COMPLETED)
+        return;
+
+    // Use the last SDP answer: 1xx/2xx responses or ACK (late offer)
+    itmsg = vector_iterator(call->msgs);
+    vector_iterator_set_last(&itmsg);
+    while ((msg = vector_iterator_prev(&itmsg))) {
+        if (msg->reqresp != SIP_METHOD_ACK && (msg->reqresp < 100 || msg->reqresp >= 300))
+            continue;
+
+        // First payload of the first active audio stream is the selected codec
+        itmedia = vector_iterator(msg->medias);
+        while ((media = vector_iterator_next(&itmedia))) {
+            if (strcmp(media->type, "audio") || media->address.port == 0)
+                continue;
+            // Prefer SDP rtpmap, fallback to static payload type name
+            code = media_get_format_code(media);
+            format = media_get_format(media, code);
+            if (!strcmp(format, "Unassigned"))
+                format = rtp_get_standard_name(code);
+            if (format)
+                sprintf(value, "%d/%s", code, format);
+            else
+                sprintf(value, "%d", code);
+            return;
+        }
+    }
 }
 
 const char *
@@ -267,6 +317,9 @@ call_get_attribute(sip_call_t *call, enum sip_attr_id id, char *value)
             break;
         case SIP_ATTR_CALLSTATE:
             sprintf(value, "%s", call_state_to_str(call->state));
+            break;
+        case SIP_ATTR_CODEC:
+            call_get_codec(call, value);
             break;
         case SIP_ATTR_TRANSPORT:
             first = vector_first(call->msgs);

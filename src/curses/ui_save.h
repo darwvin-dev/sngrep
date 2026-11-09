@@ -30,8 +30,8 @@
  *
  */
 
-#ifndef __UI_SAVE_PCAP_H
-#define __UI_SAVE_PCAP_H
+#ifndef SNGREP_UI_SAVE_PCAP_H
+#define SNGREP_UI_SAVE_PCAP_H
 #include "config.h"
 #include <form.h>
 #include "group.h"
@@ -53,6 +53,7 @@ enum save_field_list {
     FLD_SAVE_PCAP,
     FLD_SAVE_PCAP_RTP,
     FLD_SAVE_TXT,
+    FLD_SAVE_CSV,
     FLD_SAVE_SAVE,
     FLD_SAVE_CANCEL,
     FLD_SAVE_COUNT
@@ -74,7 +75,8 @@ enum save_mode {
 enum save_format {
     SAVE_PCAP = 0,
     SAVE_PCAP_RTP,
-    SAVE_TXT
+    SAVE_TXT,
+    SAVE_CSV
 };
 
 //! Sorter declaration of struct save_info
@@ -160,6 +162,21 @@ save_draw(ui_t *ui);
  */
 int
 save_handle_key(ui_t *ui, int key);
+
+/**
+ * @brief Handle Save panel mouse clicks
+ *
+ * This function is called by UI manager every time a mouse click
+ * is received on this panel. Wheel events and footer key hints are
+ * translated into keys and handled by save_handle_key instead.
+ * This function return one of the values defined in @key_handler_ret
+ *
+ * @param ui UI structure pointer
+ * @param key KEY_MOUSE
+ * @return enum @key_handler_ret
+ */
+int
+save_handle_mouse(ui_t *ui, int key);
 
 /**
  * @brief Set the group call of the panel
